@@ -37,6 +37,42 @@ func NewSelectBuilder(b StatementBuilderType) *SelectBuilder {
 	return &SelectBuilder{StatementBuilderType: b}
 }
 
+// Clone a SelectBuilder
+func (b *SelectBuilder) Clone() *SelectBuilder {
+	ret := &SelectBuilder{
+		StatementBuilderType: b.StatementBuilderType,
+		prefixes:             b.prefixes,
+		distinct:             b.distinct,
+		from:                 b.from,
+		limit:                b.limit,
+		limitValid:           b.limitValid,
+		offset:               b.offset,
+		offsetValid:          b.offsetValid,
+	}
+	for _, i := range b.options {
+		ret.options = append(ret.options, i)
+	}
+	for _, i := range b.columns {
+		ret.columns = append(ret.columns, i)
+	}
+	for _, i := range b.joins {
+		ret.joins = append(ret.joins, i)
+	}
+	for _, i := range b.whereParts {
+		ret.whereParts = append(ret.whereParts, i)
+	}
+	for _, i := range b.groupBys {
+		ret.groupBys = append(ret.groupBys, i)
+	}
+	for _, i := range b.havingParts {
+		ret.havingParts = append(ret.havingParts, i)
+	}
+	for _, i := range b.orderBys {
+		ret.orderBys = append(ret.orderBys, i)
+	}
+	return ret
+}
+
 // RunWith sets a Runner (like database/sql.DB) to be used with e.g. Exec.
 func (b *SelectBuilder) RunWith(runner BaseRunner) *SelectBuilder {
 	b.runWith = runner
@@ -329,5 +365,15 @@ func (b *SelectBuilder) Offset(offset uint64) *SelectBuilder {
 func (b *SelectBuilder) Suffix(sql string, args ...interface{}) *SelectBuilder {
 	b.suffixes = append(b.suffixes, Expr(sql, args...))
 
+	return b
+}
+
+// Build a COUNT of the current query, without limit and offset
+func (b *SelectBuilder) Count(alias string) *SelectBuilder {
+	b.columns = nil
+	b.Columns(fmt.Sprintf(`count(*) as %s`, alias))
+	b.orderBys = nil
+	b.limitValid = false
+	b.offsetValid = false
 	return b
 }
